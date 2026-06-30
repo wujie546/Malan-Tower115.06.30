@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>瑪嵐雲瀑花園 - 音樂動畫</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body, html {
+            width: 100%; height: 100%; overflow: hidden;
+            background: linear-gradient(to top, #4a2890 0%, #2a1560 30%, #140a38 65%, #060418 100%);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Microsoft JhengHei", Roboto, sans-serif;
+            user-select: none;
+        }
+        #bgVideo {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            object-fit: cover;
+            z-index: 1;
+        }
+        #canvas {
+            position: fixed; top: 0; left: 0;
+            width: 100%; height: 100%;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* ===== UI 控制面板 ===== */
+        .ui-wrap {
+            position: fixed;
+            bottom: 35px; left: 50%;
+            transform: translateX(-50%);
+            display: flex; gap: 16px;
+            padding: 14px 28px;
+            background: rgba(15,20,40,0.55);
+            backdrop-filter: blur(20px) saturate(180%);
+            -webkit-backdrop-filter: blur(20px) saturate(180%);
+            border: 1px solid rgba(255,255,255,0.15);
+            border-radius: 40px;
+            box-shadow: 0 12px 40px rgba(0,0,0,0.5), inset 0 1px 1px rgba(255,255,255,0.15);
+            z-index: 10;
+            transition: all 0.3s cubic-bezier(.25,.8,.25,1);
+        }
+        .ui-wrap:hover {
+            border-color: rgba(0,229,255,0.35);
+            box-shadow: 0 16px 48px rgba(0,229,255,0.2), inset 0 1px 1px rgba(255,255,255,0.25);
+        }
+        .btn {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 12px 24px;
+            font-size: 15px; font-weight: 600;
+            border-radius: 30px; cursor: pointer;
+            display: flex; align-items: center; gap: 8px;
+            transition: all 0.25s cubic-bezier(.25,.8,.25,1);
+            outline: none; letter-spacing: .5px;
+            text-shadow: 0 1px 2px rgba(0,0,0,0.5);
+        }
+        .btn-play {
+            background: linear-gradient(135deg, rgba(0,229,255,0.3), rgba(0,200,150,0.3));
+            border-color: rgba(0,229,255,0.5);
+        }
+        .btn-play:hover {
+            background: linear-gradient(135deg, rgba(0,229,255,0.6), rgba(0,200,150,0.6));
+            border-color: #00e5ff;
+            box-shadow: 0 0 20px rgba(0,229,255,0.6);
+            transform: translateY(-2px);
+        }
+        .btn-stop:hover {
+            background: rgba(255,75,75,0.35);
+            border-color: #ff4b4b;
+            box-shadow: 0 0 20px rgba(255,75,75,0.5);
+            transform: translateY(-2px);
+        }
+        .btn:active { transform: translateY(0); }
+
+        .sel-wrap { position: relative; display: flex; align-items: center; }
+        .custom-sel {
+            background: rgba(255,255,255,0.08);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff; padding: 12px 36px 12px 20px;
+            font-size: 14px; font-weight: 600;
+            border-radius: 30px; cursor: pointer; outline: none;
+            letter-spacing: .5px;
+            appearance: none; -webkit-appearance: none;
+            transition: all 0.25s cubic-bezier(.25,.8,.25,1);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+        }
+        .custom-sel:hover {
+            background: rgba(255,255,255,0.18);
+            border-color: rgba(255,255,255,0.4);
+            box-shadow: 0 0 15px rgba(255,255,255,0.15);
+        }
+        .custom-sel option { background: #161226; color: #fff; padding: 12px; }
+        .sel-wrap::after {
+            content: '▾'; position: absolute; right: 16px;
+            color: #fff; pointer-events: none; font-size: 12px; opacity: .8;
+        }
+
+        /* ===== 狀態 ===== */
+        .status {
+            position: fixed; top: 24px; right: 24px;
+            padding: 8px 18px;
+            background: rgba(10,14,30,0.7);
+            backdrop-filter: blur(12px);
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 20px;
+            color: #c0c8e0; font-size: 13px; font-weight: 500;
+            display: flex; align-items: center; gap: 10px;
+            pointer-events: none;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+            z-index: 10;
+        }
+        .dot {
+            width: 8px; height: 8px; border-radius: 50%;
+            background: #555; transition: all .3s;
+        }
+        .dot.on {
+            background: #00e5ff;
+            box-shadow: 0 0 10px #00e5ff, 0 0 20px #00e5ff;
+            animation: pulse 2s infinite;
+        }
+        @keyframes pulse {
+            0%   { transform: scale(.95); opacity: .8; }
+            50%  { transform: scale(1.2);  opacity: 1; }
+            100% { transform: scale(.95); opacity: .8; }
+        }
+
+        /* ===== 桌機版：影片不滿版，保留原始比例 ===== */
+        @media (min-width: 769px) {
+            #bgVideo { object-fit: contain; background: transparent; }
+        }
+        /* ===== 響應式 ===== */
+        @media (max-width: 768px) {
+            .ui-wrap { bottom: 20px; padding: 10px 16px; gap: 10px; border-radius: 25px; width: calc(100% - 32px); max-width: 400px; }
+            .btn { padding: 10px 16px; font-size: 13px; gap: 6px; }
+            .custom-sel { padding: 10px 28px 10px 14px; font-size: 12px; }
+            .status { top: 16px; right: 16px; padding: 6px 12px; font-size: 11px; }
+        }
+        @media (max-width: 480px) {
+            .ui-wrap { flex-direction: column; align-items: center; gap: 8px; padding: 12px; bottom: 16px; width: calc(100% - 24px); }
+            .btn { width: 100%; justify-content: center; padding: 12px 20px; }
+            .custom-sel, .sel-wrap { width: 100%; }
+        }
+    </style>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+</head>
+<body>
+
+<!-- 影片背景 -->
+<video id="bgVideo" autoplay loop muted playsinline>
+    <source src="瑪嵐鐵塔1.mp4" type="video/mp4">
+</video>
+
+<!-- MP3 音樂播放器 -->
+<audio id="mp3Player"></audio>
+
+<!-- Canvas 疊加層 -->
+<canvas id="canvas"></canvas>
+
+<!-- 狀態 -->
+<div class="status">
+    <div class="dot" id="dot"></div>
+    <span id="statusTxt">等待播放...</span>
+</div>
+
+<!-- 控制面板 -->
+<div class="ui-wrap">
+    <div class="sel-wrap">
+        <select id="sel" class="custom-sel">
+            <optgroup label="🎵 真人音樂">
+                <option value="mp3-晨曦">晨曦中的平安夜 (瑪嵐旅遊)</option>
+                <option value="mp3-星夜">星夜塔樓</option>
+                <option value="mp3-純淨">純淨星空 (Pure Starlight)</option>
+                <option value="mp3-口袋">口袋裡的星光 (摇篮曲版)</option>
+                <option value="mp3-晚空">晚空留白</option>
+                <option value="mp3-是否">是否_情到深處</option>
+                <option value="mp3-聖善夜">共唱圣善夜</option>
+                <option value="mp3-恩典">奇異恩典</option>
+            </optgroup>
+            <optgroup label="🔮 水晶音樂 (自動生成)">
+                <option value="cloud">雲瀑空靈</option>
+                <option value="cosmic">星夜流轉</option>
+                <option value="rain">山雨欲來</option>
+                <option value="dawn">黎明破曉</option>
+            </optgroup>
+        </select>
+    </div>
+    <button class="btn btn-play" id="btnPlay"><span>▶</span> 開始播放</button>
+    <button class="btn btn-stop" id="btnStop"><span>⏹</span> 停止</button>
+</div>
+
+<script>
+// =============================================
+//  1. Canvas 疊加動畫 (星星 + 流星 + 霓虹文字)
+// =============================================
+const cvs = document.getElementById('canvas');
+const ctx = cvs.getContext('2d');
+let W, H, t = 0;
+let stars = [], meteors = [];
+
+function resize() {
+    W = cvs.width  = window.innerWidth;
+    H = cvs.height = window.innerHeight;
+    initStars();
+}
+
+function initStars() {
+    stars = [];
+    for (let i = 0; i < Math.floor(W * H / 5000); i++) {
+        stars.push({
+            x: Math.random() * W,
+            y: Math.random() * H,
+            r: Math.random() * 1.4 + 0.3,
+            a: Math.random() * 0.6 + 0.25,
+            sp: Math.random() * 0.025 + 0.005,
+            ph: Math.random() * Math.PI * 2
+        });
+    }
+}
+
+// --- 星星 ---
+function drawStars() {
+    for (const s of stars) {
+        const a = s.a + Math.sin(t * s.sp * 50 + s.ph) * 0.3;
+        ctx.fillStyle = `rgba(220,235,255,${Math.max(0.05, Math.min(1, a))})`;
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.fill();
+    }
+}
+
+// --- 流星 ---
+function spawnMeteor() {
+    meteors.push({
+        x: Math.random() * W * 0.7 + W * 0.15,
+        y: -10,
+        vx: (Math.random() - 0.5) * 2.5 - 0.8,
+        vy: Math.random() * 7 + 5,
+        len: Math.random() * 90 + 40,
+        life: 1
+    });
+}
+
+function drawMeteors() {
+    for (let i = meteors.length - 1; i >= 0; i--) {
+        const m = meteors[i];
+        ctx.save();
+        const g = ctx.createLinearGradient(
+            m.x, m.y,
+            m.x - (m.vx / m.vy) * m.len, m.y - m.len
+        );
+        g.addColorStop(0,   `rgba(255,255,255,${m.life})`);
+        g.addColorStop(0.3, `rgba(200,220,255,${m.life * 0.6})`);
+        g.addColorStop(1,   'rgba(150,180,220,0)');
+        ctx.strokeStyle = g;
+        ctx.lineWidth = 1.8;
+        ctx.beginPath();
+        ctx.moveTo(m.x, m.y);
+        ctx.lineTo(m.x - (m.vx / m.vy) * m.len, m.y - m.len);
+        ctx.stroke();
+        // 頭部亮點
+        ctx.fillStyle = `rgba(255,255,255,${m.life})`;
+        ctx.shadowColor = '#aac8ff';
+        ctx.shadowBlur = 6;
+        ctx.beginPath();
+        ctx.arc(m.x, m.y, 1.8, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+        m.x += m.vx;
+        m.y += m.vy;
+        m.life -= 0.007;
+        if (m.y > H + 60 || m.life <= 0) meteors.splice(i, 1);
+    }
+}
+
+// --- 霓虹文字 ---
+function neonRGB() {
+    const h = (t * 0.025) % 360;
+    return `hsl(${h},100%,60%)`;
+}
+function neonGlow() {
+    const h = (t * 0.025) % 360;
+    return `hsl(${h},100%,50%)`;
+}
+
+function drawText() {
+    // 微調 X 讓文字精準對齊鐵塔頂端正中間
+    const cx = W < 768 ? W / 2 + 4 : W / 2 + 2;
+    // 手機版：鐵塔在畫面較下方 → 文字放 28%；桌機版：鐵塔在上方 → 文字放 8%
+    const ty = W < 768 ? H * 0.28 : H * 0.08;
+    const txt = '瑪嵐旅遊';
+    ctx.save();
+    const fs = W < 768 ? 26 : 34;
+    ctx.font = `900 ${fs}px -apple-system, BlinkMacSystemFont, "Microsoft JhengHei", sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.pointerEvents = 'none';
+    // 外暈
+    ctx.shadowColor = neonGlow();
+    ctx.shadowBlur = 40;
+    ctx.fillStyle = neonRGB();
+    ctx.fillText(txt, cx, ty);
+    // 中暈
+    ctx.shadowBlur = 18;
+    ctx.fillText(txt, cx, ty);
+    // 核心白光
+    ctx.shadowColor = '#fff';
+    ctx.shadowBlur = 4;
+    ctx.fillStyle = '#fff';
+    ctx.fillText(txt, cx, ty);
+    ctx.restore();
+}
+
+// --- 主迴圈 (Canvas 保持透明，影片才會露出來) ---
+function loop(ts) {
+    t = ts || 0;
+    ctx.clearRect(0, 0, W, H);
+    drawStars();
+    drawMeteors();
+    drawText();
+    if (Math.random() < 0.05) spawnMeteor();
+    requestAnimationFrame(loop);
+}
+
+window.addEventListener('resize', resize);
+resize();
+loop(0);
+
+
+// =============================================
+//  2. 音樂引擎
+// =============================================
+let isPlaying = false, cur = 'mp3-晨曦';
+const mp3Player = document.getElementById('mp3Player');
+
+// MP3 播放清單 (依順序)
+const mp3Order = ['mp3-晨曦','mp3-星夜','mp3-純淨','mp3-口袋','mp3-晚空','mp3-是否','mp3-聖善夜','mp3-恩典'];
+const mp3List = {
+    'mp3-晨曦':  { n:'晨曦中的平安夜 (瑪嵐旅遊)', src:'晨曦中的平安夜 (瑪嵐旅遊).mp3' },
+    'mp3-星夜':  { n:'星夜塔樓', src:'星夜塔樓.mp3' },
+    'mp3-純淨':  { n:'純淨星空 (Pure Starlight)', src:'純淨星空 (Pure Starlight).mp3' },
+    'mp3-口袋':  { n:'口袋裡的星光 (摇篮曲版)', src:'口袋裡的星光 (摇篮曲版).mp3' },
+    'mp3-晚空':  { n:'晚空留白', src:'晚空留白.mp3' },
+    'mp3-是否':  { n:'是否_情到深處', src:'是否_情到深處.mp3' },
+    'mp3-聖善夜': { n:'共唱圣善夜', src:'共唱圣善夜.mp3' },
+    'mp3-恩典':  { n:'奇異恩典', src:'奇異恩典.mp3' }
+};
+
+// 自動播放下一首
+mp3Player.addEventListener('ended', () => {
+    if (!isPlaying || !cur.startsWith('mp3-')) return;
+    const idx = mp3Order.indexOf(cur);
+    const nextIdx = (idx + 1) % mp3Order.length;
+    cur = mp3Order[nextIdx];
+    document.getElementById('sel').value = cur;
+    play();
+});
+
+// 水晶音樂設定
+const P = {
+    cloud:  { n:'🔮 雲瀑空靈', bpm:72, ch:[['C4','E4','G4','B4','D5'],['A3','C4','E4','G4'],['F3','A3','C4','E4'],['G3','B3','D4','F#4']], ml:[['C5','E5','G5','A5','B5'],['F5','G5','A5','C6','E6']] },
+    cosmic: { n:'🌌 星夜流轉', bpm:76, ch:[['D4','F#4','A4','C#5'],['B3','D4','F#4','A4'],['G3','B3','D4','F#4'],['A3','C#4','E4','A4']], ml:[['D5','E5','F#5','A5','B5'],['E5','G5','A5','B5','D6']] },
+    rain:   { n:'🌧️ 山雨欲來', bpm:68, ch:[['Eb4','G4','Bb4','D5'],['C4','Eb4','G4','Bb4'],['Ab3','C4','Eb4','G4'],['Bb3','D4','F4','Ab4']], ml:[['Eb5','F5','G5','Bb5','C6'],['Ab5','Bb5','C6','Eb6','F6']] },
+    dawn:   { n:'🌅 黎明破曉', bpm:80, ch:[['F4','A4','C5','E5'],['D4','F4','A4','C5'],['Bb3','D4','F4','A4'],['C4','E4','G4','B4']], ml:[['F5','G5','A5','C6','E6'],['D5','F5','G5','A5','C6']] }
+};
+
+let sC, sL, sB, sCh, mF, mR, mD;
+
+function setup() {
+    if (sC) return;
+    mF = new Tone.Filter({ frequency:5000, type:'lowpass' }).toDestination();
+    mR = new Tone.Reverb({ decay:5.5, wet:0.6 }).connect(mF);
+    mD = new Tone.PingPongDelay({ delayTime:'8n.', feedback:0.3, wet:0.3 }).connect(mR);
+    sC = new Tone.PolySynth(Tone.FMSynth, {
+        harmonicity:2, modulationIndex:1.2,
+        oscillator:{ type:'sine' },
+        envelope:{ attack:0.01, decay:2, sustain:0.1, release:2.5 },
+        modulation:{ type:'sine' },
+        modulationEnvelope:{ attack:0.01, decay:0.8, sustain:0, release:0.8 }
+    }).connect(mD); sC.volume.value = -14;
+    sL = new Tone.Synth({
+        oscillator:{ type:'sine' },
+        envelope:{ attack:0.005, decay:1.5, sustain:0.05, release:2 }
+    }).connect(mD); sL.volume.value = -12;
+    sB = new Tone.MonoSynth({
+        oscillator:{ type:'sine' },
+        filter:{ Q:1, type:'lowpass', rollover:-12 },
+        envelope:{ attack:0.6, decay:2, sustain:0.7, release:3 },
+        filterEnvelope:{ attack:0.3, decay:1.2, sustain:0.5, release:2, baseFrequency:80 }
+    }).connect(mR); sB.volume.value = -18;
+    sCh = new Tone.MetalSynth({
+        frequency:1500,
+        envelope:{ attack:0.001, decay:0.5, release:0.5 },
+        harmonicity:5.1, modulationIndex:16, resonance:4000, octaves:1.5
+    }).connect(mR); sCh.volume.value = -30;
+}
+
+function gen(s) {
+    const p = P[cur] || P.cloud;
+    Tone.Transport.bpm.value = p.bpm;
+    for (let b = 0; b < 10; b++) {
+        const ch = p.ch[b % p.ch.length];
+        const t0 = s + b * Tone.Time('1m').toSeconds();
+        ch.forEach((n,i) => Tone.Transport.schedule(t => sC.triggerAttackRelease(n,'2n',t), t0 + i * Tone.Time('8n').toSeconds() * 0.8));
+        Tone.Transport.schedule(t => sB.triggerAttackRelease(ch[0].replace('4','2').replace('3','2'),'1m',t), t0);
+        if (Math.random() > 0.2) {
+            const sc = p.ml[b % p.ml.length];
+            for (let n = 0; n < Math.floor(Math.random()*3)+2; n++)
+                Tone.Transport.schedule(t => sL.triggerAttackRelease(sc[Math.floor(Math.random()*sc.length)],'4n',t), t0 + Math.floor(Math.random()*12) * Tone.Time('16n').toSeconds());
+        }
+        if (Math.random() > 0.5)
+            Tone.Transport.schedule(t => sCh.triggerAttackRelease('C7','8n',t,Math.random()*0.3+0.2), t0 + Math.random()*Tone.Time('2n').toSeconds()+Tone.Time('4n').toSeconds());
+    }
+}
+
+async function play() {
+    // 先停止所有音源
+    Tone.Transport.stop(); Tone.Transport.cancel();
+    mp3Player.pause(); mp3Player.currentTime = 0;
+
+    if (cur.startsWith('mp3-')) {
+        // 播放 MP3
+        const info = mp3List[cur];
+        if (info) {
+            mp3Player.src = info.src;
+            mp3Player.play();
+        }
+    } else {
+        // 播放水晶音樂
+        await Tone.start(); setup();
+        gen(0); gen(Tone.Time('10m').toSeconds());
+        Tone.Transport.scheduleRepeat(t => gen(t + Tone.Time('10m').toSeconds()), '10m', '10m');
+        Tone.Transport.start();
+    }
+    isPlaying = true; ui(true);
+}
+
+function stop() {
+    Tone.Transport.stop(); Tone.Transport.cancel();
+    mp3Player.pause(); mp3Player.currentTime = 0;
+    isPlaying = false; ui(false);
+}
+
+function ui(on) {
+    const d = document.getElementById('dot'), x = document.getElementById('statusTxt');
+    let n = '';
+    if (cur.startsWith('mp3-')) {
+        const info = mp3List[cur];
+        n = info ? info.n : '';
+    } else {
+        n = P[cur] ? P[cur].n : '';
+    }
+    if (on) { d.classList.add('on'); x.textContent = `▶ 播放中 (${n})`; }
+    else    { d.classList.remove('on'); x.textContent = '⏹ 已停止'; }
+}
+
+// =============================================
+//  3. UI 事件
+// =============================================
+document.getElementById('btnPlay').onclick = play;
+document.getElementById('btnStop').onclick = stop;
+document.getElementById('sel').onchange = e => { cur = e.target.value; if (isPlaying) play(); };
+</script>
+</body>
+</html>
