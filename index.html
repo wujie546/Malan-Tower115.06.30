@@ -138,9 +138,10 @@
             .status { top: 16px; right: 16px; padding: 6px 12px; font-size: 11px; }
         }
         @media (max-width: 480px) {
-            .ui-wrap { flex-direction: column; align-items: center; gap: 8px; padding: 12px; bottom: 16px; width: calc(100% - 24px); }
-            .btn { width: 100%; justify-content: center; padding: 12px 20px; }
-            .custom-sel, .sel-wrap { width: 100%; }
+            .ui-wrap { flex-direction: row; flex-wrap: wrap; justify-content: center; gap: 6px; padding: 8px 10px; bottom: 10px; width: calc(100% - 16px); }
+            .btn { padding: 8px 14px; font-size: 12px; gap: 4px; }
+            .custom-sel { padding: 8px 24px 8px 12px; font-size: 11px; }
+            .sel-wrap { flex: 1; min-width: 120px; }
         }
     </style>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
@@ -169,16 +170,16 @@
     <div class="sel-wrap">
         <select id="sel" class="custom-sel">
             <optgroup label="🎵 真人音樂">
-                <option value="mp3-晨曦">晨曦中的平安夜 (瑪嵐旅遊)</option>
+                <option value="mp3-晨曦">晨曦中的平安夜</option>
                 <option value="mp3-星夜">星夜塔樓</option>
-                <option value="mp3-純淨">純淨星空 (Pure Starlight)</option>
-                <option value="mp3-口袋">口袋裡的星光 (摇篮曲版)</option>
+                <option value="mp3-純淨">純淨星空</option>
+                <option value="mp3-口袋">口袋裡的星光</option>
                 <option value="mp3-晚空">晚空留白</option>
                 <option value="mp3-是否">是否_情到深處</option>
                 <option value="mp3-聖善夜">共唱圣善夜</option>
                 <option value="mp3-恩典">奇異恩典</option>
             </optgroup>
-            <optgroup label="🔮 水晶音樂 (自動生成)">
+            <optgroup label="🔮 水晶音樂">
                 <option value="cloud">雲瀑空靈</option>
                 <option value="cosmic">星夜流轉</option>
                 <option value="rain">山雨欲來</option>
@@ -186,7 +187,7 @@
             </optgroup>
         </select>
     </div>
-    <button class="btn btn-play" id="btnPlay"><span>▶</span> 開始播放</button>
+    <button class="btn btn-play" id="btnPlay"><span>▶</span> 播放</button>
     <button class="btn btn-stop" id="btnStop"><span>⏹</span> 停止</button>
 </div>
 
@@ -337,10 +338,10 @@ const mp3Player = document.getElementById('mp3Player');
 // MP3 播放清單 (依順序)
 const mp3Order = ['mp3-晨曦','mp3-星夜','mp3-純淨','mp3-口袋','mp3-晚空','mp3-是否','mp3-聖善夜','mp3-恩典'];
 const mp3List = {
-    'mp3-晨曦':  { n:'晨曦中的平安夜 (瑪嵐旅遊)', src:'晨曦中的平安夜 (瑪嵐旅遊).mp3' },
+    'mp3-晨曦':  { n:'晨曦中的平安夜', src:'晨曦中的平安夜 (瑪嵐旅遊).mp3' },
     'mp3-星夜':  { n:'星夜塔樓', src:'星夜塔樓.mp3' },
-    'mp3-純淨':  { n:'純淨星空 (Pure Starlight)', src:'純淨星空 (Pure Starlight).mp3' },
-    'mp3-口袋':  { n:'口袋裡的星光 (摇篮曲版)', src:'口袋裡的星光 (摇篮曲版).mp3' },
+    'mp3-純淨':  { n:'純淨星空', src:'純淨星空 (Pure Starlight).mp3' },
+    'mp3-口袋':  { n:'口袋裡的星光', src:'口袋裡的星光 (摇篮曲版).mp3' },
     'mp3-晚空':  { n:'晚空留白', src:'晚空留白.mp3' },
     'mp3-是否':  { n:'是否_情到深處', src:'是否_情到深處.mp3' },
     'mp3-聖善夜': { n:'共唱圣善夜', src:'共唱圣善夜.mp3' },
