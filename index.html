@@ -171,6 +171,7 @@
         <select id="sel" class="custom-sel">
             <option value="mp3-晚空">晚空留白</option>
             <option value="cloud">雲瀑空靈</option>
+            <option value="mp3-恩典">奇異恩典</option>
             <option value="mp3-星夜">星夜塔樓</option>
             <option value="cosmic">星夜流轉</option>
             <option value="mp3-純淨">純淨星空</option>
@@ -180,7 +181,6 @@
             <option value="mp3-是否">是否_情到深處</option>
             <option value="mp3-雲瀑">雲瀑隨想</option>
             <option value="mp3-聖善夜">共唱圣善夜</option>
-            <option value="mp3-恩典">奇異恩典</option>
         </select>
     </div>
     <button class="btn btn-play" id="btnPlay"><span>▶</span> 播放</button>
@@ -333,7 +333,7 @@ let crystalTimer = null;
 const mp3Player = document.getElementById('mp3Player');
 
 // 播放清單 (水晶+真人混在一起)
-const allOrder = ['mp3-晚空','cloud','mp3-星夜','cosmic','mp3-純淨','rain','mp3-口袋','dawn','mp3-是否','mp3-雲瀑','mp3-聖善夜','mp3-恩典'];
+const allOrder = ['mp3-晚空','cloud','mp3-恩典','mp3-星夜','cosmic','mp3-純淨','rain','mp3-口袋','dawn','mp3-是否','mp3-雲瀑','mp3-聖善夜'];
 const mp3List = {
     'mp3-晚空':  { n:'晚空留白', src:'晚空留白.mp3' },
     'mp3-星夜':  { n:'星夜塔樓', src:'星夜塔樓.mp3' },
@@ -471,8 +471,11 @@ document.getElementById('btnPlay').onclick = play;
 document.getElementById('btnStop').onclick = stop;
 document.getElementById('sel').onchange = e => { cur = e.target.value; if (isPlaying) play(); };
 
-// 自動播放
-setTimeout(() => play(), 500);
+// 點擊頁面任意位置開始播放（瀏覽器限制需使用者互動才能播放音樂）
+document.body.addEventListener('click', function autoPlay() {
+    play();
+    document.body.removeEventListener('click', autoPlay);
+});
 </script>
 </body>
 </html>
