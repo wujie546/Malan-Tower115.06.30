@@ -347,7 +347,7 @@ const mp3List = {
 
 // 自動播放下一首
 mp3Player.addEventListener('ended', () => {
-    if (!isPlaying) return;
+    if (!isPlaying || !cur.startsWith('mp3-')) return;
     const idx = allOrder.indexOf(cur);
     const nextIdx = (idx + 1) % allOrder.length;
     cur = allOrder[nextIdx];
@@ -426,20 +426,20 @@ async function play() {
             mp3Player.play();
         }
     } else {
-        // 播放水晶音樂 (3分鐘後自動換下一首)
+        // 播放水晶音樂 (約36秒後自動換下一首)
         await Tone.start(); setup();
-        gen(0); gen(Tone.Time('10m').toSeconds());
-        Tone.Transport.scheduleRepeat(t => gen(t + Tone.Time('10m').toSeconds()), '10m', '10m');
+        gen(0);
         Tone.Transport.start();
         crystalTimer = setTimeout(() => {
             if (isPlaying && !cur.startsWith('mp3-')) {
+                Tone.Transport.stop(); Tone.Transport.cancel();
                 const idx = allOrder.indexOf(cur);
                 const nextIdx = (idx + 1) % allOrder.length;
                 cur = allOrder[nextIdx];
                 document.getElementById('sel').value = cur;
                 play();
             }
-        }, 180000); // 3分鐘
+        }, 36000); // 36秒
     }
     isPlaying = true; ui(true);
 }
