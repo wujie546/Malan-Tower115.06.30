@@ -169,22 +169,18 @@
 <div class="ui-wrap">
     <div class="sel-wrap">
         <select id="sel" class="custom-sel">
-            <optgroup label="🎵 真人音樂">
-                <option value="mp3-晨曦">晨曦中的平安夜</option>
-                <option value="mp3-星夜">星夜塔樓</option>
-                <option value="mp3-純淨">純淨星空</option>
-                <option value="mp3-口袋">口袋裡的星光</option>
-                <option value="mp3-晚空">晚空留白</option>
-                <option value="mp3-是否">是否_情到深處</option>
-                <option value="mp3-聖善夜">共唱圣善夜</option>
-                <option value="mp3-恩典">奇異恩典</option>
-            </optgroup>
-            <optgroup label="🔮 水晶音樂">
-                <option value="cloud">雲瀑空靈</option>
-                <option value="cosmic">星夜流轉</option>
-                <option value="rain">山雨欲來</option>
-                <option value="dawn">黎明破曉</option>
-            </optgroup>
+            <option value="mp3-晚空">晚空留白</option>
+            <option value="cloud">雲瀑空靈</option>
+            <option value="mp3-星夜">星夜塔樓</option>
+            <option value="cosmic">星夜流轉</option>
+            <option value="mp3-純淨">純淨星空</option>
+            <option value="rain">山雨欲來</option>
+            <option value="mp3-口袋">口袋裡的星光</option>
+            <option value="dawn">黎明破曉</option>
+            <option value="mp3-是否">是否_情到深處</option>
+            <option value="mp3-雲瀑">雲瀑隨想</option>
+            <option value="mp3-聖善夜">共唱圣善夜</option>
+            <option value="mp3-恩典">奇異恩典</option>
         </select>
     </div>
     <button class="btn btn-play" id="btnPlay"><span>▶</span> 播放</button>
@@ -332,38 +328,39 @@ loop(0);
 // =============================================
 //  2. 音樂引擎
 // =============================================
-let isPlaying = false, cur = 'mp3-晨曦';
+let isPlaying = false, cur = 'mp3-晚空';
+let crystalTimer = null;
 const mp3Player = document.getElementById('mp3Player');
 
-// MP3 播放清單 (依順序)
-const mp3Order = ['mp3-晨曦','mp3-星夜','mp3-純淨','mp3-口袋','mp3-晚空','mp3-是否','mp3-聖善夜','mp3-恩典'];
+// 播放清單 (水晶+真人混在一起)
+const allOrder = ['mp3-晚空','cloud','mp3-星夜','cosmic','mp3-純淨','rain','mp3-口袋','dawn','mp3-是否','mp3-雲瀑','mp3-聖善夜','mp3-恩典'];
 const mp3List = {
-    'mp3-晨曦':  { n:'晨曦中的平安夜', src:'晨曦中的平安夜 (瑪嵐旅遊).mp3' },
+    'mp3-晚空':  { n:'晚空留白', src:'晚空留白.mp3' },
     'mp3-星夜':  { n:'星夜塔樓', src:'星夜塔樓.mp3' },
     'mp3-純淨':  { n:'純淨星空', src:'純淨星空 (Pure Starlight).mp3' },
     'mp3-口袋':  { n:'口袋裡的星光', src:'口袋裡的星光 (摇篮曲版).mp3' },
-    'mp3-晚空':  { n:'晚空留白', src:'晚空留白.mp3' },
     'mp3-是否':  { n:'是否_情到深處', src:'是否_情到深處.mp3' },
+    'mp3-雲瀑':  { n:'雲瀑隨想', src:'雲瀑隨想.mp3' },
     'mp3-聖善夜': { n:'共唱圣善夜', src:'共唱圣善夜.mp3' },
     'mp3-恩典':  { n:'奇異恩典', src:'奇異恩典.mp3' }
 };
 
 // 自動播放下一首
 mp3Player.addEventListener('ended', () => {
-    if (!isPlaying || !cur.startsWith('mp3-')) return;
-    const idx = mp3Order.indexOf(cur);
-    const nextIdx = (idx + 1) % mp3Order.length;
-    cur = mp3Order[nextIdx];
+    if (!isPlaying) return;
+    const idx = allOrder.indexOf(cur);
+    const nextIdx = (idx + 1) % allOrder.length;
+    cur = allOrder[nextIdx];
     document.getElementById('sel').value = cur;
     play();
 });
 
 // 水晶音樂設定
 const P = {
-    cloud:  { n:'🔮 雲瀑空靈', bpm:72, ch:[['C4','E4','G4','B4','D5'],['A3','C4','E4','G4'],['F3','A3','C4','E4'],['G3','B3','D4','F#4']], ml:[['C5','E5','G5','A5','B5'],['F5','G5','A5','C6','E6']] },
-    cosmic: { n:'🌌 星夜流轉', bpm:76, ch:[['D4','F#4','A4','C#5'],['B3','D4','F#4','A4'],['G3','B3','D4','F#4'],['A3','C#4','E4','A4']], ml:[['D5','E5','F#5','A5','B5'],['E5','G5','A5','B5','D6']] },
-    rain:   { n:'🌧️ 山雨欲來', bpm:68, ch:[['Eb4','G4','Bb4','D5'],['C4','Eb4','G4','Bb4'],['Ab3','C4','Eb4','G4'],['Bb3','D4','F4','Ab4']], ml:[['Eb5','F5','G5','Bb5','C6'],['Ab5','Bb5','C6','Eb6','F6']] },
-    dawn:   { n:'🌅 黎明破曉', bpm:80, ch:[['F4','A4','C5','E5'],['D4','F4','A4','C5'],['Bb3','D4','F4','A4'],['C4','E4','G4','B4']], ml:[['F5','G5','A5','C6','E6'],['D5','F5','G5','A5','C6']] }
+    cloud:  { n:'雲瀑空靈', bpm:72, ch:[['C4','E4','G4','B4','D5'],['A3','C4','E4','G4'],['F3','A3','C4','E4'],['G3','B3','D4','F#4']], ml:[['C5','E5','G5','A5','B5'],['F5','G5','A5','C6','E6']] },
+    cosmic: { n:'星夜流轉', bpm:76, ch:[['D4','F#4','A4','C#5'],['B3','D4','F#4','A4'],['G3','B3','D4','F#4'],['A3','C#4','E4','A4']], ml:[['D5','E5','F#5','A5','B5'],['E5','G5','A5','B5','D6']] },
+    rain:   { n:'山雨欲來', bpm:68, ch:[['Eb4','G4','Bb4','D5'],['C4','Eb4','G4','Bb4'],['Ab3','C4','Eb4','G4'],['Bb3','D4','F4','Ab4']], ml:[['Eb5','F5','G5','Bb5','C6'],['Ab5','Bb5','C6','Eb6','F6']] },
+    dawn:   { n:'黎明破曉', bpm:80, ch:[['F4','A4','C5','E5'],['D4','F4','A4','C5'],['Bb3','D4','F4','A4'],['C4','E4','G4','B4']], ml:[['F5','G5','A5','C6','E6'],['D5','F5','G5','A5','C6']] }
 };
 
 let sC, sL, sB, sCh, mF, mR, mD;
@@ -419,6 +416,7 @@ async function play() {
     // 先停止所有音源
     Tone.Transport.stop(); Tone.Transport.cancel();
     mp3Player.pause(); mp3Player.currentTime = 0;
+    if (crystalTimer) { clearTimeout(crystalTimer); crystalTimer = null; }
 
     if (cur.startsWith('mp3-')) {
         // 播放 MP3
@@ -428,11 +426,20 @@ async function play() {
             mp3Player.play();
         }
     } else {
-        // 播放水晶音樂
+        // 播放水晶音樂 (3分鐘後自動換下一首)
         await Tone.start(); setup();
         gen(0); gen(Tone.Time('10m').toSeconds());
         Tone.Transport.scheduleRepeat(t => gen(t + Tone.Time('10m').toSeconds()), '10m', '10m');
         Tone.Transport.start();
+        crystalTimer = setTimeout(() => {
+            if (isPlaying && !cur.startsWith('mp3-')) {
+                const idx = allOrder.indexOf(cur);
+                const nextIdx = (idx + 1) % allOrder.length;
+                cur = allOrder[nextIdx];
+                document.getElementById('sel').value = cur;
+                play();
+            }
+        }, 180000); // 3分鐘
     }
     isPlaying = true; ui(true);
 }
@@ -440,6 +447,7 @@ async function play() {
 function stop() {
     Tone.Transport.stop(); Tone.Transport.cancel();
     mp3Player.pause(); mp3Player.currentTime = 0;
+    if (crystalTimer) { clearTimeout(crystalTimer); crystalTimer = null; }
     isPlaying = false; ui(false);
 }
 
@@ -462,6 +470,9 @@ function ui(on) {
 document.getElementById('btnPlay').onclick = play;
 document.getElementById('btnStop').onclick = stop;
 document.getElementById('sel').onchange = e => { cur = e.target.value; if (isPlaying) play(); };
+
+// 自動播放
+setTimeout(() => play(), 500);
 </script>
 </body>
 </html>
